@@ -43,6 +43,18 @@ async def test_approve_resumes_into_deploy(auth, project_id):
     assert len(after) > len(before)  # a deploy task was added
 
 
+async def test_review_gate_survives_in_memory_reset(auth, project_id):
+    await osvc.run_project_workflow(project_id, "Durable Review Gate")
+    assert project_id in osvc._pending_states
+
+    osvc._pending_states.pop(project_id, None)
+
+    ok = await osvc.approve_review(project_id, feedback="resume from durable state")
+    assert ok
+    promoted = await _wait_until(lambda: project_id in osvc._pending_prod)
+    assert promoted
+
+
 async def test_reject_clears_the_gate(auth, project_id):
     await osvc.run_project_workflow(project_id, "RejectMe")
     assert project_id in osvc._pending_states

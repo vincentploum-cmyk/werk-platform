@@ -15,6 +15,8 @@ from typing import Optional
 
 from app.api.ws import broadcast_event
 from app.core.config import settings
+from app.database import async_session_factory
+from app.models.db_models import WorkflowGateState
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +93,7 @@ async def run_project_workflow(project_id: str, project_name: str) -> dict:
             })
 
         # Hold the state and wait for a human to approve or reject the review gate.
-        _pending_states[project_id] = result
+        await _save_gate_state(project_id, "review", result)
         await broadcast_event("workflow.review_pending", {
             "project_id": project_id, "project_name": project_name, "stages": len(created),
         })
@@ -153,6 +155,76 @@ _STAGE_ROLE = {
 _pending_prod: dict = {}
 
 
+async def _save_gate_state(project_id: str, gate_type: str, state: dict) -> dict:
+    """Persist the actionable workflow gate state and mirror it in memory."""
+    payload = _serialize_state(state)
+    async with async_session_factory() as db:
+        row = await db.get(WorkflowGateState, project_id)
+        if row is None:
+            row = WorkflowGateState(project_id=project_id, gate_type=gate_type, state_json=payload)
+            db.add(row)
+        else:
+            row.gate_type = gate_type
+            row.state_json = payload
+        await db.commit()
+
+    if gate_type == "review":
+        _pending_states[project_id] = payload
+        _pending_prod.pop(project_id, None)
+    else:
+        _pending_prod[project_id] = payload
+        _pending_states.pop(project_id, None)
+    return payload
+
+
+async def _load_gate_state(project_id: str, gate_type: str) -> Optional[dict]:
+    """Load gate state from memory first, then durable storage."""
+    cache = _pending_states if gate_type == "review" else _pending_prod
+    cached = cache.get(project_id)
+    if cached is not None:
+        return cached
+
+    async with async_session_factory() as db:
+        row = await db.get(WorkflowGateState, project_id)
+
+    if row is None or row.gate_type != gate_type:
+        return None
+
+    payload = dict(row.state_json or {})
+    cache[project_id] = payload
+    if gate_type == "review":
+        _pending_prod.pop(project_id, None)
+    else:
+        _pending_states.pop(project_id, None)
+    return payload
+
+
+async def _clear_gate_state(project_id: str, gate_type: Optional[str] = None) -> bool:
+    """Delete the durable gate state and clear any in-memory mirrors."""
+    existed = False
+    async with async_session_factory() as db:
+        row = await db.get(WorkflowGateState, project_id)
+        if row is not None and (gate_type is None or row.gate_type == gate_type):
+            await db.delete(row)
+            await db.commit()
+            existed = True
+
+    _pending_states.pop(project_id, None)
+    _pending_prod.pop(project_id, None)
+    return existed
+
+
+async def _get_gate_info(project_id: str) -> Optional[dict]:
+    async with async_session_factory() as db:
+        row = await db.get(WorkflowGateState, project_id)
+    if row is None:
+        return None
+    return {
+        "gate_type": row.gate_type,
+        "updated_at": row.updated_at.isoformat() if row.updated_at else None,
+    }
+
+
 async def _broadcast_created(project_id: str, created: list) -> None:
     for c in created:
         await broadcast_event("task.updated", {
@@ -209,7 +281,7 @@ async def _persist_workflow_artifacts(project_id: str, artifacts: list) -> list:
 async def approve_review(project_id: str, feedback: str = "") -> bool:
     """Approve the review gate and resume the workflow into the Deploy stage."""
     orch = await get_orchestrator()
-    state = _pending_states.get(project_id)
+    state = await _load_gate_state(project_id, "review")
     if orch is None or state is None:
         return False
     await broadcast_event("review.approved", {"project_id": project_id, "feedback": feedback})
@@ -228,11 +300,10 @@ async def _resume_deploy(orch, project_id: str, state: dict, feedback: str) -> N
         await _broadcast_created(project_id, created)
 
         # The review gate is done; hold for a dedicated production sign-off before prod.
-        _pending_states.pop(project_id, None)
-        _pending_prod[project_id] = state
+        await _save_gate_state(project_id, "production", state)
         await broadcast_event("workflow.prod_pending", {"project_id": project_id})
     except Exception as e:
-        _pending_states.pop(project_id, None)
+        await _clear_gate_state(project_id, gate_type="review")
         logger.error(f"[{project_id}] Test deploy after approval failed: {e}")
         await broadcast_event("workflow.completed", {"project_id": project_id, "error": str(e)})
 
@@ -240,7 +311,7 @@ async def _resume_deploy(orch, project_id: str, state: dict, feedback: str) -> N
 async def approve_prod(project_id: str, feedback: str = "") -> bool:
     """Approve the production gate and deploy to production."""
     orch = await get_orchestrator()
-    state = _pending_prod.get(project_id)
+    state = await _load_gate_state(project_id, "production")
     if orch is None or state is None:
         return False
     await broadcast_event("review.approved", {"project_id": project_id, "stage": "production"})
@@ -250,7 +321,6 @@ async def approve_prod(project_id: str, feedback: str = "") -> bool:
 
 async def _resume_deploy_prod(orch, project_id: str, state: dict, feedback: str) -> None:
     """Run the PRODUCTION deploy after the prod sign-off, persist its artifact, and finish."""
-    _pending_prod.pop(project_id, None)
     try:
         update = await orch.resume_after_prod_approval(state, feedback=feedback)
         state.update(update)
@@ -258,6 +328,7 @@ async def _resume_deploy_prod(orch, project_id: str, state: dict, feedback: str)
         prod_arts = [a for a in state.get("artifacts", []) if a.get("stage") == "deploy_prod"]
         created = await _persist_workflow_artifacts(project_id, prod_arts)
         await _broadcast_created(project_id, created)
+        await _clear_gate_state(project_id, gate_type="production")
     except Exception as e:
         logger.error(f"[{project_id}] Production deploy failed: {e}")
     finally:
@@ -268,7 +339,7 @@ async def _resume_deploy_prod(orch, project_id: str, state: dict, feedback: str)
 
 async def reject_prod(project_id: str, feedback: str) -> bool:
     """Reject the production gate — stop before deploying to prod. Test deploy remains."""
-    existed = _pending_prod.pop(project_id, None) is not None
+    existed = await _clear_gate_state(project_id, gate_type="production")
     await broadcast_event("review.rejected", {"project_id": project_id, "stage": "production"})
     await broadcast_event("workflow.completed", {"project_id": project_id, "rejected_prod": True})
     return existed
@@ -276,7 +347,7 @@ async def reject_prod(project_id: str, feedback: str) -> bool:
 
 async def reject_review(project_id: str, feedback: str) -> bool:
     """Reject the review gate — stop the workflow before deploy. Stage tasks remain for rework."""
-    existed = _pending_states.pop(project_id, None) is not None
+    existed = await _clear_gate_state(project_id, gate_type="review")
     await broadcast_event("review.rejected", {"project_id": project_id, "feedback": feedback})
     await broadcast_event("workflow.completed", {"project_id": project_id, "rejected": True})
     return existed
@@ -290,10 +361,12 @@ async def get_workflow_status(project_id: str) -> dict:
 
     try:
         context = orch.context.get_all(project_id)
+        gate = await _get_gate_info(project_id)
         return {
             "project_id": project_id,
             "context": context,
             "agents": [vars(a) for a in orch.registry.list_all()],
+            "pending_gate": gate,
         }
     except Exception as e:
         return {"project_id": project_id, "status": "error", "error": str(e)}

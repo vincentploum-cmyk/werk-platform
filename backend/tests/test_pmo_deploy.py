@@ -71,6 +71,17 @@ async def test_prod_reject_holds_production(auth, project_id):
     assert not any(a["filename"] == "deployment_production.md" for a in arts)
 
 
+async def test_prod_gate_survives_in_memory_reset(auth, project_id):
+    await osvc.run_project_workflow(project_id, "Durable Prod Gate")
+    await osvc.approve_review(project_id)
+    assert await _wait(lambda: project_id in osvc._pending_prod)
+
+    osvc._pending_prod.pop(project_id, None)
+
+    assert await osvc.approve_prod(project_id)
+    assert await _wait(lambda: project_id not in osvc._pending_prod)
+
+
 # ── PMO status report ───────────────────────────────────────────────────────
 async def test_pmo_status_report(auth, project_id):
     workspace_service.save_document(project_id, "requirements.md", "The system shall allow SSO login.")

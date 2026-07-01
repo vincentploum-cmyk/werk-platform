@@ -113,3 +113,15 @@ class AppSetting(Base):
     key = Column(String(100), primary_key=True)
     value = Column(JSON, default=dict)
     updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
+class WorkflowGateState(Base):
+    """Durable workflow state for review and production approval gates."""
+
+    __tablename__ = "workflow_gate_states"
+
+    project_id = Column(UUID(as_uuid=False), ForeignKey("projects.id"), primary_key=True)
+    gate_type = Column(String(50), nullable=False)  # review | production
+    state_json = Column("state", JSON, default=dict, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=utcnow)
+    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
