@@ -33,4 +33,8 @@ Thumbs.db
 
 # SQLite (dev)
 *.db
+*.db-journal
 *.sqlite3
+
+# Transient filesystem artifacts
+.fuse_hidden*
