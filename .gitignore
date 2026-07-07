@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+*.egg
+
+# Node
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+playwright-report/
+test-results/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Docker
+*.log
+
+# SQLite (dev)
+*.db
+*.db-journal
+*.sqlite3
+
+# Transient filesystem artifacts
+.fuse_hidden*
+# TLS certs are generated locally (infrastructure/scripts/generate_certs.sh) — never commit them
+infrastructure/nginx/ssl/

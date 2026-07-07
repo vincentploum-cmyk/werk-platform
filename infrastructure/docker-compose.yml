@@ -1,0 +1,168 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: werk-postgres
+    environment:
+      POSTGRES_DB: werk
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    # Security: drop unused capabilities
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - SETUID
+      - SETGID
+    # Security: read-only root filesystem
+    read_only: false
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql
+
+  redis:
+    image: redis:7-alpine
+    container_name: werk-redis
+    command: redis-server --requirepass "${REDIS_PASSWORD:-}" --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-}", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+    read_only: false
+    tmpfs:
+      - /tmp
+
+  minio:
+    image: minio/minio:latest
+    container_name: werk-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+      - FOWNER
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: werk-backend
+    ports:
+      - "8000:8000"
+    environment:
+      # Service-host URLs must override the localhost values from ../.env.
+      DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/werk
+      REDIS_URL: redis://:${REDIS_PASSWORD:-}@redis:6379/0
+    # SECRET_KEY, DEBUG, and the LLM / Ollama config (USE_OLLAMA, OLLAMA_BASE_URL,
+    # OLLAMA_MODEL, API keys) come from ../.env. Keep them out of `environment:` —
+    # entries there override env_file, and ${VAR} substitution reads the shell,
+    # not ../.env, so a default here would silently win over the user's .env.
+    env_file:
+      - ../.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    # Security: non-root user
+    user: "1000:1000"
+    cap_drop:
+      - ALL
+    read_only: false
+    tmpfs:
+      - /tmp
+    volumes:
+      - ../shared:/home/team/shared:ro
+      # Make the orchestrator package importable inside the backend (WORKDIR /app).
+      - ../orchestrator:/app/orchestrator:ro
+
+  nginx:
+    image: nginx:alpine
+    container_name: werk-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - backend
+      - frontend
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+      - NET_BIND_SERVICE
+    read_only: false
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: werk-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    read_only: false
+    tmpfs:
+      - /tmp
+
+  # Local LLM server — runs the agents' reasoning on your machine, no external API or cost.
+  ollama:
+    image: ollama/ollama:latest
+    container_name: werk-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  ollama_data:

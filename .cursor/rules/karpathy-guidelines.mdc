@@ -1,0 +1,32 @@
+---
+description: Repo-specific coding guardrails for the Consulting Agentic Platform.
+alwaysApply: true
+---
+
+# Consulting Agentic Platform guardrails
+
+## Think before coding
+- Do not assume intent when the workflow, approval path, or state model is unclear.
+- If behavior is ambiguous, say what is ambiguous before changing code.
+
+## Simplicity first
+- Write the minimum code needed.
+- No speculative abstractions.
+- No drive-by cleanup outside the requested scope.
+
+## Surgical changes
+- Every changed line should trace back to the task.
+- Match local style and leave unrelated code alone.
+
+## Explicit workflow architecture
+- Do not hide agent policy in scattered string literals when a repo-visible surface can hold it.
+- Do not call underscore-private orchestrator methods across module boundaries.
+- Approval and production gate state should be durable and resumable.
+- Keep one clear source of truth for workflow state.
+
+## Verification
+Before calling work done, verify the exact path you changed:
+- gate approval/rejection
+- resume behavior
+- restart/durability path when relevant
+- nearest backend/frontend tests

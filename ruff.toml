@@ -1,0 +1,4 @@
+# Keep in sync with the CI lint step (.github/workflows/ci-backend.yml).
+[lint.per-file-ignores]
+# conftest deliberately patches sqlalchemy/redis before importing the app.
+"backend/tests/conftest.py" = ["E402"]

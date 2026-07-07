@@ -1,0 +1,67 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Werk Shared Context",
+  "description": "The state object maintained during the LangGraph development workflow.",
+  "type": "object",
+  "properties": {
+    "project_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for the project."
+    },
+    "current_stage": {
+      "type": "string",
+      "enum": ["Initialization", "UX_Design", "Architecture", "Development", "Testing", "Review", "Deployment"],
+      "description": "The current phase of the development lifecycle."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["idle", "processing", "blocked", "awaiting_signoff", "completed"],
+      "description": "The active status of the current stage."
+    },
+    "requirements": {
+      "type": "object",
+      "properties": {
+        "prd_path": { "type": "string" },
+        "user_stories_path": { "type": "string" },
+        "validation_plan_path": { "type": "string" }
+      },
+      "description": "Paths to requirement artifacts."
+    },
+    "architecture": {
+      "type": "object",
+      "properties": {
+        "design_doc_path": { "type": "string" },
+        "security_policy_path": { "type": "string" }
+      },
+      "description": "Paths to architectural artifacts."
+    },
+    "codebase": {
+      "type": "object",
+      "properties": {
+        "repo_url": { "type": "string" },
+        "branch": { "type": "string" },
+        "last_commit": { "type": "string" }
+      },
+      "description": "Information about the technical implementation."
+    },
+    "active_agent": {
+      "type": "string",
+      "description": "The role of the agent currently holding the lock on the context."
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "timestamp": { "type": "string", "format": "date-time" },
+          "agent": { "type": "string" },
+          "action": { "type": "string" },
+          "summary": { "type": "string" }
+        }
+      },
+      "description": "Audit trail of agent actions."
+    }
+  },
+  "required": ["project_id", "current_stage", "status"]
+}

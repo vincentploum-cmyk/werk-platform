@@ -1,0 +1,59 @@
+name: Security Scan
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # Every Monday at 6 AM
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/requirements.txt'
+      - 'frontend/package.json'
+      - '.github/workflows/security-scan.yml'
+
+permissions:
+  contents: read
+  security-events: write  # for the Trivy SARIF upload
+
+jobs:
+  scan:
+    name: Dependency & SAST Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pip-audit (dependency scanner)
+        run: pip install pip-audit
+
+      - name: Scan Python dependencies
+        # --no-deps: audit the exact pins in requirements.txt (all pinned);
+        # transitive deps are covered by the Trivy fs scan below.
+        run: pip-audit -r backend/requirements.txt --no-deps --disable-pip
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Scan Node dependencies
+        run: |
+          cd frontend
+          npm audit --audit-level=high || true
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'HIGH,CRITICAL'
+
+      - name: Upload Trivy results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
