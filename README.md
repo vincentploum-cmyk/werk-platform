@@ -1,8 +1,8 @@
 # Werk Platform
 
-[![CI — Backend](https://github.com/vincentploum-cmyk/Consulting-Agentic-Platform/actions/workflows/ci-backend.yml/badge.svg)](https://github.com/vincentploum-cmyk/Consulting-Agentic-Platform/actions/workflows/ci-backend.yml)
-[![CI — Frontend](https://github.com/vincentploum-cmyk/Consulting-Agentic-Platform/actions/workflows/ci-frontend.yml/badge.svg)](https://github.com/vincentploum-cmyk/Consulting-Agentic-Platform/actions/workflows/ci-frontend.yml)
-[![Security Scan](https://github.com/vincentploum-cmyk/Consulting-Agentic-Platform/actions/workflows/security-scan.yml/badge.svg)](https://github.com/vincentploum-cmyk/Consulting-Agentic-Platform/actions/workflows/security-scan.yml)
+[![CI — Backend](https://github.com/vincentploum-cmyk/werk-platform/actions/workflows/ci-backend.yml/badge.svg)](https://github.com/vincentploum-cmyk/werk-platform/actions/workflows/ci-backend.yml)
+[![CI — Frontend](https://github.com/vincentploum-cmyk/werk-platform/actions/workflows/ci-frontend.yml/badge.svg)](https://github.com/vincentploum-cmyk/werk-platform/actions/workflows/ci-frontend.yml)
+[![Security Scan](https://github.com/vincentploum-cmyk/werk-platform/actions/workflows/security-scan.yml/badge.svg)](https://github.com/vincentploum-cmyk/werk-platform/actions/workflows/security-scan.yml)
 
 An AI-orchestrated consulting delivery platform. Upload a signed Statement of Work and the
 platform staffs a tailored team of specialized agents, lets a consultant configure each one,
