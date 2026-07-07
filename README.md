@@ -9,6 +9,8 @@ platform staffs a tailored team of specialized agents, lets a consultant configu
 runs the delivery lifecycle, and produces downloadable deliverables — driven by a **local model**
 (Ollama) at no per-call cost, or a hosted API if you prefer.
 
+![The Werk agent canvas — live team status, pipeline handoffs, drag-to-assign](docs/media/werk-canvas.png)
+
 > Research preview. See `docs/` for design notes and `TESTING.md` for the test suite.
 
 ## Who this is for
