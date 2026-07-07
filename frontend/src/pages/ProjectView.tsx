@@ -114,7 +114,7 @@ function TaskCard({
               onClick={() =>
                 action.feedback ? setPending(action) : onStatusChange(task.id, action.status)
               }
-              className={`rounded px-2.5 py-1 text-xs font-medium text-white transition ${action.color}`}
+              className={`min-h-[36px] rounded px-3 py-1.5 text-xs font-medium text-white transition ${action.color}`}
             >
               {action.label}
             </button>
@@ -149,13 +149,13 @@ function TaskCard({
           <div className="mt-2 flex gap-2">
             <button
               onClick={confirmPending}
-              className={`rounded px-2.5 py-1 text-xs font-medium text-white transition ${pending.color}`}
+              className={`min-h-[36px] rounded px-3 py-1.5 text-xs font-medium text-white transition ${pending.color}`}
             >
               Confirm {pending.feedback?.title.toLowerCase()}
             </button>
             <button
               onClick={cancelPending}
-              className="rounded px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-300"
+              className="min-h-[36px] rounded px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-300"
             >
               Cancel
             </button>
@@ -323,7 +323,7 @@ export function ProjectView() {
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               {project?.name || `Project ${id?.slice(0, 8)}`}
             </h1>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => id && generateStatusReport(id)}
                 disabled={statusReportLoading}
@@ -454,7 +454,7 @@ export function ProjectView() {
           {/* Kanban columns */}
           <div className="lg:col-span-3">
             {tasksLoading ? (
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {[1, 2, 3, 4].map((i) => (
                   <div key={i} className="h-64 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />
                 ))}

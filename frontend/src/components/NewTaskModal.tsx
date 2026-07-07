@@ -76,7 +76,7 @@ export default function NewTaskModal({
       >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900">New task</h2>
-          <button onClick={onClose} aria-label="Close" className="rounded-md p-1 text-gray-500 hover:bg-gray-100">
+          <button onClick={onClose} aria-label="Close" className="flex h-10 w-10 items-center justify-center rounded-md text-gray-500 hover:bg-gray-100">
             ✕
           </button>
         </div>
@@ -152,7 +152,7 @@ export default function NewTaskModal({
               onChange={(e) => setAgentId(e.target.value)}
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500"
             >
-              <option value="">Unassigned (drop on an agent later)</option>
+              <option value="">Unassigned (assign later from the tray)</option>
               {agents.map((a) => (
                 <option key={a.id} value={a.id}>
                   {metaFor(a.role).glyph} {a.name}

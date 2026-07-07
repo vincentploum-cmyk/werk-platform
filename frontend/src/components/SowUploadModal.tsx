@@ -157,7 +157,7 @@ export default function SowUploadModal({
         onClick={(e) => e.stopPropagation()}>
         <div className="mb-1 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900">Deploy a team from a signed SOW</h2>
-          <button onClick={onClose} aria-label="Close" className="rounded-md p-1 text-gray-500 hover:bg-gray-100">✕</button>
+          <button onClick={onClose} aria-label="Close" className="flex h-10 w-10 items-center justify-center rounded-md text-gray-500 hover:bg-gray-100">✕</button>
         </div>
         <p className="mb-4 text-sm text-gray-500">
           Upload the signed SOW. The platform extracts the configured parameters, you confirm or

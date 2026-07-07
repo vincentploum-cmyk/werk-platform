@@ -206,7 +206,7 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
           </div>
           <button
             onClick={onClose}
-            className="rounded-md p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-600"
+            className="flex h-10 w-10 items-center justify-center rounded-md text-gray-500 hover:bg-gray-100 hover:text-gray-600"
             aria-label="Close"
           >
             ✕
@@ -276,7 +276,7 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
                   <button
                     onClick={handleSaveInstr}
                     disabled={instrSaving}
-                    className="rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent-hover disabled:opacity-40"
+                    className="min-h-[40px] rounded-md bg-accent px-3 py-2 text-xs font-medium text-white hover:bg-accent-hover disabled:opacity-40"
                   >
                     {instrSaving ? 'Saving…' : 'Save instructions'}
                   </button>
@@ -323,8 +323,8 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
                       <span className="text-[11px] font-medium text-gray-500">Example {i + 1}</span>
                       <button
                         onClick={() => setExamples((p) => p.filter((_, j) => j !== i))}
-                        className="rounded p-0.5 text-gray-300 hover:text-red-500"
-                        aria-label="Remove"
+                        className="flex h-8 w-8 items-center justify-center rounded text-gray-400 hover:text-red-500"
+                        aria-label={`Remove example ${i + 1}`}
                       >
                         ✕
                       </button>
@@ -364,7 +364,7 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
                   <button
                     onClick={handleSaveExamples}
                     disabled={exSaving}
-                    className="ml-auto rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent-hover disabled:opacity-40"
+                    className="ml-auto min-h-[40px] rounded-md bg-accent px-3 py-2 text-xs font-medium text-white hover:bg-accent-hover disabled:opacity-40"
                   >
                     {exSaving ? 'Saving…' : 'Save examples'}
                   </button>
@@ -460,8 +460,8 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
                       />
                       <button
                         onClick={() => setReqs((prev) => prev.filter((_, j) => j !== i))}
-                        className="mt-1 rounded p-0.5 text-gray-300 hover:text-red-500"
-                        aria-label="Remove"
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded text-gray-400 hover:text-red-500"
+                        aria-label={`Remove requirement FR-${i + 1}`}
                       >
                         ✕
                       </button>
@@ -498,14 +498,14 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
                   <button
                     onClick={handleCreateTasksFromReqs}
                     disabled={!projectId}
-                    className="flex-1 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent-hover disabled:opacity-40"
+                    className="min-h-[40px] flex-1 rounded-md bg-accent px-3 py-2 text-xs font-medium text-white hover:bg-accent-hover disabled:opacity-40"
                     title={!projectId ? 'Pick a project first' : ''}
                   >
                     Create {reqs.length} task{reqs.length === 1 ? '' : 's'}
                   </button>
                   <button
                     onClick={handleDownloadDoc}
-                    className="flex-1 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                    className="min-h-[40px] flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50"
                   >
                     Download .docx
                   </button>
@@ -550,7 +550,7 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
                             <button
                               onClick={() => handleRun(t.id)}
                               disabled={isRunning}
-                              className="rounded-md bg-accent px-2.5 py-1 text-xs font-medium text-white hover:bg-accent-hover disabled:opacity-50"
+                              className="min-h-[36px] rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent-hover disabled:opacity-50"
                             >
                               {isRunning ? 'Running…' : '▶ Run'}
                             </button>
@@ -558,7 +558,7 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
                           {t.status === 'review' && (
                             <button
                               onClick={() => updateTaskStatus(t.id, 'done')}
-                              className="rounded-md bg-state-done px-2.5 py-1 text-xs font-medium text-white hover:bg-state-done-hover"
+                              className="min-h-[36px] rounded-md bg-state-done px-3 py-1.5 text-xs font-medium text-white hover:bg-state-done-hover"
                             >
                               Approve
                             </button>
@@ -622,7 +622,7 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
                   <button
                     onClick={handleAssign}
                     disabled={!title.trim()}
-                    className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-40"
+                    className="min-h-[40px] rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-40"
                   >
                     Assign
                   </button>
@@ -689,7 +689,7 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
               <button
                 onClick={handleSend}
                 disabled={!message.trim() || chatPending}
-                className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-40"
+                className="min-h-[40px] rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-40"
               >
                 Send
               </button>
