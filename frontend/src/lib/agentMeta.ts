@@ -9,22 +9,23 @@ export interface RoleMeta {
 }
 
 // Keyed by agent.role (see db seed data).
+// Colors double as text on white cards, so every value is ≥4.5:1 (WCAG AA).
 export const ROLE_META: Record<string, RoleMeta> = {
   pmo: { label: 'PMO', glyph: '🧭', color: '#4f46e5', soft: '#eef2ff' },
-  requirements: { label: 'Requirements', glyph: '📋', color: '#6366f1', soft: '#eef2ff' },
-  ux: { label: 'UX', glyph: '🎨', color: '#ec4899', soft: '#fdf2f8' },
-  business: { label: 'Business Logic', glyph: '📊', color: '#f59e0b', soft: '#fffbeb' },
-  architect: { label: 'Architecture', glyph: '📐', color: '#8b5cf6', soft: '#f5f3ff' },
-  developer: { label: 'Developer', glyph: '💻', color: '#0ea5e9', soft: '#f0f9ff' },
-  tester: { label: 'Tester', glyph: '🧪', color: '#10b981', soft: '#ecfdf5' },
-  devops: { label: 'DevOps · Test', glyph: '🚀', color: '#f97316', soft: '#fff7ed' },
-  release: { label: 'Release · Prod', glyph: '🏭', color: '#dc2626', soft: '#fef2f2' },
+  requirements: { label: 'Requirements', glyph: '📋', color: '#4338ca', soft: '#eef2ff' },
+  ux: { label: 'UX', glyph: '🎨', color: '#be185d', soft: '#fdf2f8' },
+  business: { label: 'Business Logic', glyph: '📊', color: '#b45309', soft: '#fffbeb' },
+  architect: { label: 'Architecture', glyph: '📐', color: '#6d28d9', soft: '#f5f3ff' },
+  developer: { label: 'Developer', glyph: '💻', color: '#0369a1', soft: '#f0f9ff' },
+  tester: { label: 'Tester', glyph: '🧪', color: '#047857', soft: '#ecfdf5' },
+  devops: { label: 'DevOps · Test', glyph: '🚀', color: '#c2410c', soft: '#fff7ed' },
+  release: { label: 'Release · Prod', glyph: '🏭', color: '#b91c1c', soft: '#fef2f2' },
 }
 
 export const DEFAULT_META: RoleMeta = {
   label: 'Agent',
   glyph: '🤖',
-  color: '#64748b',
+  color: '#475569',
   soft: '#f1f5f9',
 }
 
@@ -85,8 +86,9 @@ export const STATE_LABEL: Record<AgentState, string> = {
   review: 'In Review',
 }
 
+// Status dot colors — kept ≥3:1 against white cards (WCAG 1.4.11 for UI graphics).
 export const STATE_DOT: Record<AgentState, string> = {
-  idle: '#9ca3af',
-  working: '#f59e0b',
+  idle: '#6b7280',
+  working: '#d97706',
   review: '#8b5cf6',
 }

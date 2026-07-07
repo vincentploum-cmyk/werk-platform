@@ -18,7 +18,7 @@ export function Header() {
               className={`text-sm font-medium ${
                 location.pathname === '/'
                   ? 'text-indigo-600 dark:text-indigo-400'
-                  : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
+                  : 'text-gray-600 hover:text-gray-900 dark:text-gray-500 dark:hover:text-white'
               }`}
             >
               Canvas
@@ -28,7 +28,7 @@ export function Header() {
               className={`text-sm font-medium ${
                 location.pathname.startsWith('/project')
                   ? 'text-indigo-600 dark:text-indigo-400'
-                  : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
+                  : 'text-gray-600 hover:text-gray-900 dark:text-gray-500 dark:hover:text-white'
               }`}
             >
               Projects
@@ -36,10 +36,10 @@ export function Header() {
           </nav>
         </div>
         <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+          <span className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-500">
             <span
               className={`inline-block h-2 w-2 rounded-full ${
-                wsConnected ? 'bg-green-500' : 'bg-red-400'
+                wsConnected ? 'bg-green-600' : 'bg-red-500'
               }`}
             />
             {wsConnected ? 'Live' : 'Offline'}

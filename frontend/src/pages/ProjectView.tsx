@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useState, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useWerkStore, type Task } from '../stores/werkStore'
 import Header from '../components/Header'
@@ -31,20 +31,51 @@ function TaskCard({
   onStatusChange,
 }: {
   task: Task
-  onStatusChange: (taskId: string, status: string) => void
+  onStatusChange: (taskId: string, status: string, result?: string) => void
 }) {
-  const nextActions: Record<string, { label: string; status: string; color: string }[]> = {
-    backlog: [{ label: '→ Start', status: 'in_progress', color: 'bg-indigo-600 hover:bg-indigo-700' }],
-    in_progress: [{ label: 'Request Review →', status: 'review', color: 'bg-amber-600 hover:bg-amber-700' }],
+  // Review sign-offs collect optional feedback inline before the decision is sent.
+  const nextActions: Record<
+    string,
+    { label: string; status: string; color: string; feedback?: { title: string; fallback: string } }[]
+  > = {
+    backlog: [{ label: '→ Start', status: 'in_progress', color: 'bg-accent hover:bg-accent-hover' }],
+    in_progress: [{ label: 'Request Review →', status: 'review', color: 'bg-state-progress hover:bg-state-progress-hover' }],
     review: [
-      { label: '✓ Approve', status: 'done', color: 'bg-green-600 hover:bg-green-700' },
-      { label: '↩ Reject', status: 'in_progress', color: 'bg-red-500 hover:bg-red-600' },
+      {
+        label: '✓ Approve',
+        status: 'done',
+        color: 'bg-state-done hover:bg-state-done-hover',
+        feedback: { title: 'Approve', fallback: 'Approved' },
+      },
+      {
+        label: '↩ Reject',
+        status: 'in_progress',
+        color: 'bg-state-danger hover:bg-state-danger-hover',
+        feedback: { title: 'Reject', fallback: 'Rework requested' },
+      },
     ],
     done: [],
-    blocked: [{ label: '↩ Unblock', status: 'in_progress', color: 'bg-gray-500 hover:bg-gray-600' }],
+    blocked: [{ label: '↩ Unblock', status: 'in_progress', color: 'bg-gray-600 hover:bg-gray-700' }],
   }
 
   const actions = nextActions[task.status] ?? []
+  const [pending, setPending] = useState<(typeof actions)[number] | null>(null)
+  const [feedback, setFeedback] = useState('')
+  const actionsRef = useRef<HTMLDivElement>(null)
+
+  const cancelPending = () => {
+    setPending(null)
+    setFeedback('')
+    // return keyboard focus to the action buttons the form replaced
+    requestAnimationFrame(() => actionsRef.current?.querySelector('button')?.focus())
+  }
+
+  const confirmPending = () => {
+    if (!pending) return
+    onStatusChange(task.id, pending.status, feedback.trim() || pending.feedback?.fallback)
+    setPending(null)
+    setFeedback('')
+  }
 
   return (
     <div
@@ -59,7 +90,7 @@ function TaskCard({
         )}
       </div>
       {task.description && (
-        <p className="mt-1 text-xs text-gray-600 line-clamp-2 dark:text-gray-400">
+        <p className="mt-1 text-xs text-gray-600 line-clamp-2 dark:text-gray-500">
           {task.description}
         </p>
       )}
@@ -75,17 +106,60 @@ function TaskCard({
       )}
 
       {/* Action buttons */}
-      {actions.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-2">
+      {actions.length > 0 && !pending && (
+        <div ref={actionsRef} className="mt-3 flex flex-wrap gap-2">
           {actions.map((action) => (
             <button
               key={action.status}
-              onClick={() => onStatusChange(task.id, action.status)}
+              onClick={() =>
+                action.feedback ? setPending(action) : onStatusChange(task.id, action.status)
+              }
               className={`rounded px-2.5 py-1 text-xs font-medium text-white transition ${action.color}`}
             >
               {action.label}
             </button>
           ))}
+        </div>
+      )}
+
+      {/* Inline sign-off feedback */}
+      {pending && (
+        <div className="mt-3">
+          <label
+            htmlFor={`signoff-${task.id}`}
+            className="mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300"
+          >
+            {pending.feedback?.title} — feedback (optional)
+          </label>
+          <input
+            id={`signoff-${task.id}`}
+            value={feedback}
+            onChange={(e) => setFeedback(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') confirmPending()
+              if (e.key === 'Escape') {
+                e.stopPropagation()
+                cancelPending()
+              }
+            }}
+            autoFocus
+            placeholder={pending.feedback?.fallback}
+            className="w-full rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-indigo-500"
+          />
+          <div className="mt-2 flex gap-2">
+            <button
+              onClick={confirmPending}
+              className={`rounded px-2.5 py-1 text-xs font-medium text-white transition ${pending.color}`}
+            >
+              Confirm {pending.feedback?.title.toLowerCase()}
+            </button>
+            <button
+              onClick={cancelPending}
+              className="rounded px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-300"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -99,7 +173,7 @@ function KanbanColumn({
 }: {
   status: string
   tasks: Task[]
-  onStatusChange: (taskId: string, status: string) => void
+  onStatusChange: (taskId: string, status: string, result?: string) => void
 }) {
   return (
     <div className={`rounded-lg border-t-4 ${STATUS_COLORS[status] || 'border-t-gray-400'} ${STATUS_BG[status]}`}>
@@ -107,13 +181,13 @@ function KanbanColumn({
         <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
           {STATUS_LABELS[status] || status}
         </h3>
-        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-gray-200 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-gray-200 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-500">
           {tasks.length}
         </span>
       </div>
       <div className="space-y-3 p-4 pt-2">
         {tasks.length === 0 ? (
-          <p className="py-8 text-center text-xs text-gray-400 dark:text-gray-500">No tasks</p>
+          <p className="py-8 text-center text-xs text-gray-500 dark:text-gray-500">No tasks</p>
         ) : (
           tasks.map((task) => (
             <TaskCard key={task.id} task={task} onStatusChange={onStatusChange} />
@@ -135,7 +209,7 @@ function ActivityFeed({ tasks }: { tasks: Task[] }) {
       <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Activity</h3>
       <div className="mt-3 space-y-2">
         {recent.length === 0 ? (
-          <p className="py-4 text-center text-xs text-gray-400">No activity yet</p>
+          <p className="py-4 text-center text-xs text-gray-500">No activity yet</p>
         ) : (
           recent.map((task) => (
             <div key={task.id} className="flex items-start gap-2 text-xs">
@@ -154,7 +228,7 @@ function ActivityFeed({ tasks }: { tasks: Task[] }) {
                 <p className="text-gray-700 dark:text-gray-300">
                   <span className="font-medium">{task.title}</span> → {STATUS_LABELS[task.status] || task.status}
                 </p>
-                <p className="text-gray-400 dark:text-gray-500">
+                <p className="text-gray-500 dark:text-gray-500">
                   {new Date(task.updated_at).toLocaleTimeString()}
                 </p>
               </div>
@@ -213,26 +287,16 @@ export function ProjectView() {
   }, [id, setSelectedProject, fetchTasks, fetchArtifacts, fetchWorkspace, connectWebSocket])
 
   const project = projects.find((p) => p.id === id)
+  const [reviewFeedback, setReviewFeedback] = useState('')
+  const [prodFeedback, setProdFeedback] = useState('')
 
+  // Sign-off feedback is collected inline on the TaskCard and passed through here.
   const handleStatusChange = useCallback(
-    async (taskId: string, newStatus: string) => {
-      const task = tasks.find((t) => t.id === taskId)
-
-      // If moving to review from done, ask for feedback
-      if (newStatus === 'done' && task?.status === 'review') {
-        const result = prompt('Sign-off result / feedback:')
-        await updateTaskStatus(taskId, newStatus, result || 'Approved')
-      } else if (newStatus === 'in_progress' && task?.status === 'review') {
-        const result = prompt('Rejection feedback:')
-        await updateTaskStatus(taskId, newStatus, result || 'Rework requested')
-      } else {
-        await updateTaskStatus(taskId, newStatus)
-      }
-
-      // Refresh tasks
+    async (taskId: string, newStatus: string, result?: string) => {
+      await updateTaskStatus(taskId, newStatus, result)
       if (id) fetchTasks(id)
     },
-    [tasks, updateTaskStatus, fetchTasks, id],
+    [updateTaskStatus, fetchTasks, id],
   )
 
   const groupedTasks = STATUS_COLUMNS.reduce(
@@ -270,7 +334,7 @@ export function ProjectView() {
               <button
                 onClick={() => id && runWorkflow(id, project?.name || `Project ${id.slice(0, 8)}`)}
                 disabled={!id || (!!id && workflowRunning[id])}
-                className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
               >
                 {id && workflowRunning[id] ? 'Running pipeline…' : '▶ Run full workflow'}
               </button>
@@ -281,69 +345,98 @@ export function ProjectView() {
               {project.status}
             </span>
           )}
-          {id && workflowRunning[id] && (
-            <div className="mt-3 rounded-lg border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-700 dark:border-indigo-900 dark:bg-indigo-900/20 dark:text-indigo-300">
-              The agents are working through the pipeline (Requirements → UX → Architecture →
-              Development → Testing). On a local model this can take a few minutes — stage outputs
-              appear as completed tasks below as they finish.
-            </div>
-          )}
-          {id && workflowReview[id] && (
-            <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900 dark:bg-amber-900/20">
-              <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                Review gate — your sign-off is needed
-              </p>
-              <p className="mt-1 text-sm text-amber-700 dark:text-amber-300">
-                The agents finished Requirements through Testing. Review the stage outputs below,
-                then approve to deploy to the <strong>test</strong> environment, or reject for rework.
-              </p>
-              <div className="mt-3 flex gap-2">
-                <button
-                  onClick={() => id && approveWorkflow(id)}
-                  className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-                >
-                  ✓ Approve & deploy to test
-                </button>
-                <button
-                  onClick={() => {
-                    const fb = prompt('Reason for rejection (optional):') ?? ''
-                    if (id) rejectWorkflow(id, fb)
-                  }}
-                  className="rounded-md border border-amber-300 bg-white px-4 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50"
-                >
-                  Reject
-                </button>
+          <div aria-live="polite">
+            {id && workflowRunning[id] && (
+              <div className="mt-3 rounded-lg border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-700 dark:border-indigo-900 dark:bg-indigo-900/20 dark:text-indigo-300">
+                The agents are working through the pipeline (Requirements → UX → Architecture →
+                Development → Testing). On a local model this can take a few minutes — stage outputs
+                appear as completed tasks below as they finish.
               </div>
-            </div>
-          )}
-          {id && workflowProdReview[id] && (
-            <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 dark:border-red-900 dark:bg-red-900/20">
-              <p className="text-sm font-medium text-red-800 dark:text-red-200">
-                Production gate — sign-off required
-              </p>
-              <p className="mt-1 text-sm text-red-700 dark:text-red-300">
-                Deployed to the <strong>test</strong> environment and verified healthy. Approve to
-                have the Release Agent deploy to <strong>production</strong>, or hold.
-              </p>
-              <div className="mt-3 flex gap-2">
-                <button
-                  onClick={() => id && approveProd(id)}
-                  className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-                >
-                  🏭 Approve & deploy to production
-                </button>
-                <button
-                  onClick={() => {
-                    const fb = prompt('Reason for holding production (optional):') ?? ''
-                    if (id) rejectProd(id, fb)
-                  }}
-                  className="rounded-md border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-800 hover:bg-red-50"
-                >
-                  Hold
-                </button>
+            )}
+            {id && workflowReview[id] && (
+              <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900 dark:bg-amber-900/20">
+                <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
+                  Review gate — your sign-off is needed
+                </p>
+                <p className="mt-1 text-sm text-amber-800 dark:text-amber-300">
+                  The agents finished Requirements through Testing. Review the stage outputs below,
+                  then approve to deploy to the <strong>test</strong> environment, or reject for rework.
+                </p>
+                <label htmlFor="review-feedback" className="mt-3 block text-xs font-medium text-amber-900 dark:text-amber-200">
+                  Feedback (optional — recorded with your decision)
+                </label>
+                <textarea
+                  id="review-feedback"
+                  value={reviewFeedback}
+                  onChange={(e) => setReviewFeedback(e.target.value)}
+                  rows={2}
+                  className="mt-1 w-full rounded-md border border-amber-300 bg-white px-2 py-1.5 text-sm text-gray-800 focus:border-amber-500"
+                />
+                <div className="mt-3 flex gap-2">
+                  <button
+                    onClick={() => {
+                      if (id) approveWorkflow(id, reviewFeedback.trim() || undefined)
+                      setReviewFeedback('')
+                    }}
+                    className="rounded-md bg-state-done px-4 py-2 text-sm font-medium text-white hover:bg-state-done-hover"
+                  >
+                    ✓ Approve & deploy to test
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (id) rejectWorkflow(id, reviewFeedback.trim() || 'Rework requested')
+                      setReviewFeedback('')
+                    }}
+                    className="rounded-md border border-amber-400 bg-white px-4 py-2 text-sm font-medium text-amber-900 hover:bg-amber-100"
+                  >
+                    Reject for rework
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+            {id && workflowProdReview[id] && (
+              <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 dark:border-red-900 dark:bg-red-900/20">
+                <p className="text-sm font-medium text-red-900 dark:text-red-200">
+                  Production gate — sign-off required
+                </p>
+                <p className="mt-1 text-sm text-red-800 dark:text-red-300">
+                  Deployed to the <strong>test</strong> environment and verified healthy. Approve to
+                  have the Release Agent deploy to <strong>production</strong>, or hold.
+                </p>
+                <label htmlFor="prod-feedback" className="mt-3 block text-xs font-medium text-red-900 dark:text-red-200">
+                  Feedback (optional — recorded with your decision)
+                </label>
+                <textarea
+                  id="prod-feedback"
+                  value={prodFeedback}
+                  onChange={(e) => setProdFeedback(e.target.value)}
+                  rows={2}
+                  className="mt-1 w-full rounded-md border border-red-300 bg-white px-2 py-1.5 text-sm text-gray-800 focus:border-red-500"
+                />
+                <div className="mt-3 flex gap-2">
+                  <button
+                    onClick={() => {
+                      if (id) approveProd(id, prodFeedback.trim() || undefined)
+                      setProdFeedback('')
+                    }}
+                    className="rounded-md bg-state-danger px-4 py-2 text-sm font-medium text-white hover:bg-state-danger-hover"
+                  >
+                    Approve & deploy to production
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (id) rejectProd(id, prodFeedback.trim() || 'Production deploy held')
+                      setProdFeedback('')
+                    }}
+                    className="rounded-md border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-900 hover:bg-red-100"
+                  >
+                    Hold
+                  </button>
+                </div>
+              </div>
+            )}
+            <p className="sr-only">{statusReport ? 'PMO status report is ready below.' : ''}</p>
+          </div>
           {statusReport && (
             <div className="mt-3 rounded-lg border border-indigo-100 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
               <h3 className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
@@ -428,14 +521,14 @@ export function ProjectView() {
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
               Artifacts{' '}
-              <span className="ml-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500 dark:bg-gray-700">
+              <span className="ml-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-700">
                 {artifacts.length}
               </span>
             </h2>
-            <span className="text-xs text-gray-400">deliverables produced by the agents</span>
+            <span className="text-xs text-gray-500">deliverables produced by the agents</span>
           </div>
           {artifacts.length === 0 ? (
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-gray-500">
               No artifacts yet. Run an agent task or the full workflow to generate deliverables.
             </p>
           ) : (
@@ -447,7 +540,7 @@ export function ProjectView() {
                       {a.file_type || 'file'}
                     </span>
                     <span className="truncate text-sm text-gray-800 dark:text-gray-200">{a.filename}</span>
-                    <span className="shrink-0 text-xs text-gray-400">{a.size} chars</span>
+                    <span className="shrink-0 text-xs text-gray-500">{a.size} chars</span>
                   </div>
                   <button
                     onClick={() => downloadArtifact(a.id, a.filename)}
@@ -466,7 +559,7 @@ export function ProjectView() {
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
               Workspace{' '}
-              <span className="ml-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500 dark:bg-gray-700">
+              <span className="ml-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-700">
                 {workspaceFiles.length} files
               </span>
             </h2>
@@ -495,7 +588,7 @@ export function ProjectView() {
             </div>
           </div>
           {workspaceFiles.length === 0 ? (
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-gray-500">
               No code yet. When the Developer agent runs a task, the files it writes appear here;
               the Tester agent runs them.
             </p>
@@ -503,11 +596,21 @@ export function ProjectView() {
             <ul className="mb-3 flex flex-wrap gap-2">
               {workspaceFiles.map((f) => (
                 <li key={f.path} className="rounded-md bg-gray-50 px-2 py-1 font-mono text-xs text-gray-700 dark:bg-gray-700 dark:text-gray-200">
-                  {f.path} <span className="text-gray-400">· {f.size}B</span>
+                  {f.path} <span className="text-gray-500">· {f.size}B</span>
                 </li>
               ))}
             </ul>
           )}
+          {/* Concise announcements only — the full outputs below would be noise for a screen reader. */}
+          <p role="status" className="sr-only">
+            {[
+              installResult ? (installResult.installed ? 'Dependencies installed.' : 'Dependency install finished.') : '',
+              healthResult ? (healthResult.healthy ? 'Environment healthy.' : healthResult.healthy === false ? 'Environment unhealthy.' : 'Health check finished.') : '',
+              testResult ? (testResult.passed ? 'Tests passed.' : testResult.passed === false ? 'Tests failed.' : 'Test run finished.') : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          </p>
           {installResult && (
             <p className={`mt-2 text-xs ${installResult.installed ? 'text-emerald-600' : 'text-amber-600'}`}>
               {installResult.installed ? 'Dependencies installed. ' : ''}

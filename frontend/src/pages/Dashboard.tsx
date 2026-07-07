@@ -8,7 +8,7 @@ function ProjectCard({ project }: { project: Project }) {
     draft: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
     active: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
     completed: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-    archived: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
+    archived: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-500',
   }
 
   const colorClass = statusColors[project.status] || statusColors.draft
@@ -27,7 +27,7 @@ function ProjectCard({ project }: { project: Project }) {
         </span>
       </div>
       {project.description && (
-        <p className="mt-2 text-sm text-gray-600 line-clamp-2 dark:text-gray-400">
+        <p className="mt-2 text-sm text-gray-600 line-clamp-2 dark:text-gray-500">
           {project.description}
         </p>
       )}
@@ -56,13 +56,13 @@ export function Dashboard() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Projects</h1>
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+            <p className="mt-1 text-sm text-gray-600 dark:text-gray-500">
               AI-orchestrated software development platform
             </p>
           </div>
           <button
             onClick={fetchProjects}
-            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+            className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover"
           >
             Refresh
           </button>
@@ -79,9 +79,14 @@ export function Dashboard() {
           </div>
         ) : projects.length === 0 ? (
           <div className="mt-16 text-center">
-            <p className="text-lg text-gray-500 dark:text-gray-400">No projects yet</p>
-            <p className="mt-1 text-sm text-gray-400 dark:text-gray-500">
-              Create a project via the API to get started
+            <p className="text-lg text-gray-500 dark:text-gray-500">No engagements yet</p>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
+              Upload a signed SOW on the{' '}
+              <Link to="/" className="font-medium text-indigo-600 hover:text-indigo-800">
+                Canvas
+              </Link>{' '}
+              and the right team is staffed for you — or create a task there to start a blank
+              project.
             </p>
           </div>
         ) : (
