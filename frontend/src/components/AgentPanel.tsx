@@ -6,6 +6,7 @@ import {
   type AgentExample,
 } from '../stores/werkStore'
 import { metaFor, statusOf, STATE_LABEL, STATE_DOT } from '../lib/agentMeta'
+import { useDialog } from '../lib/useDialog'
 
 const STATUS_PILL: Record<string, string> = {
   backlog: 'bg-gray-100 text-gray-700',
@@ -34,6 +35,7 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
   const meta = metaFor(agent.role)
   const status = statusOf(agent, allTasks)
   const isRequirements = agent.role.toLowerCase() === 'requirements'
+  const dialogRef = useDialog<HTMLElement>(onClose)
 
   const [title, setTitle] = useState('')
   const [projectId, setProjectId] = useState(selectedProjectId ?? '')
@@ -170,7 +172,14 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
     <>
       {/* backdrop */}
       <div className="fixed inset-0 z-40 bg-black/20" onClick={onClose} />
-      <aside className="fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col border-l border-gray-200 bg-white shadow-2xl">
+      <aside
+        ref={dialogRef as React.RefObject<HTMLElement>}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${agent.name} — agent details`}
+        tabIndex={-1}
+        className="fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col border-l border-gray-200 bg-white shadow-2xl"
+      >
         {/* header */}
         <div className="flex items-start justify-between border-b border-gray-100 p-5">
           <div className="flex items-center gap-3">
@@ -197,7 +206,7 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
           </div>
           <button
             onClick={onClose}
-            className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            className="rounded-md p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-600"
             aria-label="Close"
           >
             ✕
@@ -219,7 +228,7 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
 
           {/* capabilities */}
           <div>
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
               Capabilities
             </h3>
             <div className="flex flex-wrap gap-1.5">
@@ -240,7 +249,7 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
               onClick={() => setShowInstr((v) => !v)}
               className="flex w-full items-center justify-between text-left"
             >
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                 Instructions{' '}
                 {agent.instructions_custom && (
                   <span className="ml-1 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">
@@ -248,7 +257,7 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
                   </span>
                 )}
               </h3>
-              <span className="text-xs text-gray-400">{showInstr ? 'Hide ▾' : 'Edit ▸'}</span>
+              <span className="text-xs text-gray-500">{showInstr ? 'Hide ▾' : 'Edit ▸'}</span>
             </button>
             <p className="mt-1 text-xs text-gray-500">
               How this agent thinks and responds. Edit to tune its behavior — changes apply
@@ -260,13 +269,14 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
                   value={instrText}
                   onChange={(e) => setInstrText(e.target.value)}
                   rows={8}
-                  className="w-full rounded-md border border-gray-300 px-2 py-1.5 font-mono text-xs leading-relaxed focus:border-indigo-500 focus:outline-none"
+                  aria-label={`Instructions for ${agent.name}`}
+                  className="w-full rounded-md border border-gray-300 px-2 py-1.5 font-mono text-xs leading-relaxed focus:border-indigo-500"
                 />
                 <div className="mt-2 flex items-center gap-2">
                   <button
                     onClick={handleSaveInstr}
                     disabled={instrSaving}
-                    className="rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-40"
+                    className="rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent-hover disabled:opacity-40"
                   >
                     {instrSaving ? 'Saving…' : 'Save instructions'}
                   </button>
@@ -278,7 +288,9 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
                     Reset to default
                   </button>
                 </div>
-                {instrMsg && <p className="mt-2 text-xs text-emerald-600">{instrMsg}</p>}
+                <p role="status" className={`text-xs text-emerald-700 ${instrMsg ? 'mt-2' : ''}`}>
+                  {instrMsg}
+                </p>
               </div>
             )}
           </div>
@@ -289,7 +301,7 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
               onClick={() => setShowExamples((v) => !v)}
               className="flex w-full items-center justify-between text-left"
             >
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                 Examples{' '}
                 {(agent.examples?.length ?? 0) > 0 && (
                   <span className="ml-1 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">
@@ -297,7 +309,7 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
                   </span>
                 )}
               </h3>
-              <span className="text-xs text-gray-400">{showExamples ? 'Hide ▾' : 'Edit ▸'}</span>
+              <span className="text-xs text-gray-500">{showExamples ? 'Hide ▾' : 'Edit ▸'}</span>
             </button>
             <p className="mt-1 text-xs text-gray-500">
               Good-output samples the agent matches for style and format. Used in chat, document
@@ -324,8 +336,9 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
                           p.map((x, j) => (j === i ? { ...x, input: e.target.value } : x)),
                         )
                       }
+                      aria-label={`Example ${i + 1} input context`}
                       placeholder="When asked to… (optional context)"
-                      className="mb-1 w-full rounded-md border border-gray-200 px-2 py-1 text-xs focus:border-indigo-500 focus:outline-none"
+                      className="mb-1 w-full rounded-md border border-gray-200 px-2 py-1 text-xs focus:border-indigo-500"
                     />
                     <textarea
                       value={ex.output}
@@ -335,8 +348,9 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
                           p.map((x, j) => (j === i ? { ...x, output: e.target.value } : x)),
                         )
                       }
+                      aria-label={`Example ${i + 1} output`}
                       placeholder="…this is a good output."
-                      className="w-full rounded-md border border-gray-200 px-2 py-1 text-xs focus:border-indigo-500 focus:outline-none"
+                      className="w-full rounded-md border border-gray-200 px-2 py-1 text-xs focus:border-indigo-500"
                     />
                   </div>
                 ))}
@@ -350,12 +364,14 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
                   <button
                     onClick={handleSaveExamples}
                     disabled={exSaving}
-                    className="ml-auto rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-40"
+                    className="ml-auto rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent-hover disabled:opacity-40"
                   >
                     {exSaving ? 'Saving…' : 'Save examples'}
                   </button>
                 </div>
-                {exMsg && <p className="text-xs text-emerald-600">{exMsg}</p>}
+                <p role="status" className="text-xs text-emerald-700">
+                  {exMsg}
+                </p>
               </div>
             )}
           </div>
@@ -371,13 +387,14 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
                 : 'Upload a document (PPT, PDF, Word, or text) for analysis.'}
             </p>
 
-            <label className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed border-indigo-300 bg-white px-3 py-2 text-sm text-gray-600 hover:border-indigo-400">
-              <span>📎</span>
+            <label className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed border-indigo-300 bg-white px-3 py-2 text-sm text-gray-600 hover:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-400">
+              <span aria-hidden="true">📎</span>
               <span className="truncate">{file ? file.name : 'Choose a file…'}</span>
               <input
                 type="file"
                 accept=".pptx,.pdf,.docx,.txt,.md"
-                className="hidden"
+                className="sr-only"
+                aria-label="Document to analyze"
                 onChange={(e) => {
                   setFile(e.target.files?.[0] ?? null)
                   setReqs([])
@@ -391,18 +408,23 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
               value={instruction}
               onChange={(e) => setInstruction(e.target.value)}
               placeholder="Optional: focus or scope…"
-              className="mt-2 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+              aria-label="Optional focus or scope for the analysis"
+              className="mt-2 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-indigo-500"
             />
 
             <button
               onClick={handleAnalyze}
               disabled={!file || analyzing}
-              className="mt-2 w-full rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-40"
+              className="mt-2 w-full rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-40"
             >
               {analyzing ? 'Reading the document…' : isRequirements ? 'Draft requirements' : 'Analyze'}
             </button>
 
-            {analysisErr && <p className="mt-2 text-sm text-red-600">{analysisErr}</p>}
+            {analysisErr && (
+              <p role="alert" className="mt-2 text-sm text-red-600">
+                {analysisErr}
+              </p>
+            )}
 
             {reqs.length > 0 && (
               <div className="mt-3">
@@ -424,16 +446,17 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
                 <ul className="space-y-1.5">
                   {reqs.map((r, i) => (
                     <li key={r.id} className="flex items-start gap-1.5">
-                      <span className="mt-2 text-[10px] font-semibold text-gray-400">FR-{i + 1}</span>
+                      <span className="mt-2 text-[10px] font-semibold text-gray-500">FR-{i + 1}</span>
                       <textarea
                         value={r.text}
                         rows={2}
+                        aria-label={`Requirement FR-${i + 1}`}
                         onChange={(e) =>
                           setReqs((prev) =>
                             prev.map((x, j) => (j === i ? { ...x, text: e.target.value } : x)),
                           )
                         }
-                        className="flex-1 rounded-md border border-gray-200 px-2 py-1 text-xs focus:border-indigo-500 focus:outline-none"
+                        className="flex-1 rounded-md border border-gray-200 px-2 py-1 text-xs focus:border-indigo-500"
                       />
                       <button
                         onClick={() => setReqs((prev) => prev.filter((_, j) => j !== i))}
@@ -459,7 +482,8 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
                   <select
                     value={projectId}
                     onChange={(e) => setProjectId(e.target.value)}
-                    className="mt-3 w-full rounded-md border border-gray-300 px-2 py-1.5 text-xs focus:border-indigo-500 focus:outline-none"
+                    aria-label="Project to create the tasks in"
+                    className="mt-3 w-full rounded-md border border-gray-300 px-2 py-1.5 text-xs focus:border-indigo-500"
                   >
                     <option value="">Select a project for the tasks…</option>
                     {projects.map((p) => (
@@ -474,7 +498,7 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
                   <button
                     onClick={handleCreateTasksFromReqs}
                     disabled={!projectId}
-                    className="flex-1 rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-40"
+                    className="flex-1 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent-hover disabled:opacity-40"
                     title={!projectId ? 'Pick a project first' : ''}
                   >
                     Create {reqs.length} task{reqs.length === 1 ? '' : 's'}
@@ -486,18 +510,20 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
                     Download .docx
                   </button>
                 </div>
-                {docMsg && <p className="mt-2 text-xs text-emerald-600">{docMsg}</p>}
+                <p role="status" className={`text-xs text-emerald-700 ${docMsg ? 'mt-2' : ''}`}>
+                  {docMsg}
+                </p>
               </div>
             )}
           </div>
 
           {/* assigned work */}
           <div>
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
               Assigned work ({status.tasks.length})
             </h3>
             {status.tasks.length === 0 ? (
-              <p className="text-sm text-gray-400">Nothing assigned yet.</p>
+              <p className="text-sm text-gray-500">Nothing assigned yet.</p>
             ) : (
               <ul className="space-y-2">
                 {status.tasks.map((t) => {
@@ -524,7 +550,7 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
                             <button
                               onClick={() => handleRun(t.id)}
                               disabled={isRunning}
-                              className="rounded-md bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+                              className="rounded-md bg-accent px-2.5 py-1 text-xs font-medium text-white hover:bg-accent-hover disabled:opacity-50"
                             >
                               {isRunning ? 'Running…' : '▶ Run'}
                             </button>
@@ -532,7 +558,7 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
                           {t.status === 'review' && (
                             <button
                               onClick={() => updateTaskStatus(t.id, 'done')}
-                              className="rounded-md bg-emerald-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-emerald-700"
+                              className="rounded-md bg-state-done px-2.5 py-1 text-xs font-medium text-white hover:bg-state-done-hover"
                             >
                               Approve
                             </button>
@@ -565,17 +591,18 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
 
           {/* assign new task */}
           <div>
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
               Assign a new task
             </h3>
             {projects.length === 0 ? (
-              <p className="text-sm text-gray-400">Create a project first (Projects tab).</p>
+              <p className="text-sm text-gray-500">Create a project first (Projects tab).</p>
             ) : (
               <div className="space-y-2">
                 <select
                   value={projectId}
                   onChange={(e) => setProjectId(e.target.value)}
-                  className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+                  aria-label="Project for the new task"
+                  className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-indigo-500"
                 >
                   {projects.map((p) => (
                     <option key={p.id} value={p.id}>
@@ -588,13 +615,14 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleAssign()}
+                    aria-label="Task title"
                     placeholder={`Task for the ${meta.label} agent…`}
-                    className="flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+                    className="flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-indigo-500"
                   />
                   <button
                     onClick={handleAssign}
                     disabled={!title.trim()}
-                    className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-40"
+                    className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-40"
                   >
                     Assign
                   </button>
@@ -605,12 +633,17 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
 
           {/* chat */}
           <div>
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
               Chat with {meta.label}
             </h3>
-            <div className="mb-2 max-h-64 space-y-2 overflow-y-auto rounded-lg bg-gray-50 p-3">
+            <div
+              role="log"
+              aria-live="polite"
+              aria-label={`Chat with ${meta.label}`}
+              className="mb-2 max-h-64 space-y-2 overflow-y-auto rounded-lg bg-gray-50 p-3"
+            >
               {history.length === 0 && (
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-gray-500">
                   Ask this agent about its part of the work.
                 </p>
               )}
@@ -622,13 +655,13 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
                   <div
                     className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${
                       m.from === 'user'
-                        ? 'bg-indigo-600 text-white'
+                        ? 'bg-accent text-white'
                         : 'bg-white text-gray-800 shadow-sm ring-1 ring-gray-100'
                     }`}
                   >
                     {m.text}
                     {m.from === 'agent' && m.source === 'persona' && (
-                      <span className="mt-1 block text-[10px] italic text-gray-400">
+                      <span className="mt-1 block text-[10px] italic text-gray-500">
                         simulated · enable a model (local Ollama or an API key) for live replies
                       </span>
                     )}
@@ -637,7 +670,7 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
               ))}
               {chatPending && (
                 <div className="flex justify-start">
-                  <div className="rounded-2xl bg-white px-3 py-2 text-sm text-gray-400 shadow-sm ring-1 ring-gray-100">
+                  <div className="rounded-2xl bg-white px-3 py-2 text-sm text-gray-500 shadow-sm ring-1 ring-gray-100">
                     thinking…
                   </div>
                 </div>
@@ -650,7 +683,8 @@ export default function AgentPanel({ agent, onClose }: { agent: Agent; onClose: 
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                 placeholder="Type a message…"
-                className="flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none"
+                aria-label={`Message the ${meta.label} agent`}
+                className="flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:border-indigo-500"
               />
               <button
                 onClick={handleSend}

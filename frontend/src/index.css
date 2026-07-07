@@ -4,5 +4,13 @@
 
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  color-scheme: light dark;
+  color-scheme: light;
+}
+
+/* Visible keyboard focus everywhere; inputs keep their border cue for pointer focus. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid theme('colors.indigo.500');
+    outline-offset: 2px;
+  }
 }

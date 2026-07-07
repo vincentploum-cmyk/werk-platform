@@ -25,6 +25,9 @@ const CANVAS_CSS = `
 .werk-edge-active { animation: werk-dash 0.6s linear infinite; }
 @keyframes werk-shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(250%); } }
 .werk-shimmer { animation: werk-shimmer 1.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .werk-working, .werk-edge-active, .werk-shimmer { animation: none; }
+}
 `
 
 // Fallback positions for any agent whose role isn't in the pipeline layout.
@@ -68,7 +71,7 @@ function AgentNode({
           const taskId = e.dataTransfer.getData('text/plain')
           if (taskId) onDropTask(taskId, agent)
         }}
-        className={`werk-working group w-44 rounded-2xl border bg-white p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
+        className={`${working ? 'werk-working ' : ''}group w-44 rounded-2xl border bg-white p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
           dragOver ? 'scale-105 border-indigo-400 ring-2 ring-indigo-300' : 'border-gray-200'
         }`}
         style={
@@ -108,7 +111,7 @@ function AgentNode({
             )}
           </div>
         ) : (
-          <p className="mt-2 text-[11px] text-gray-400">Idle · drop a task here</p>
+          <p className="mt-2 text-[11px] text-gray-500">Idle · drop a task here</p>
         )}
       </button>
     </div>
@@ -160,7 +163,8 @@ export default function AgentCanvas() {
             <select
               value={teamProjectId ?? ''}
               onChange={(e) => setTeam(e.target.value || null)}
-              className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-indigo-500 focus:outline-none"
+              className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-indigo-500"
+              aria-label="Which team to show on the canvas"
               title="Whose team to show on the canvas"
             >
               <option value="">Global roster</option>
@@ -187,7 +191,7 @@ export default function AgentCanvas() {
             </button>
             <button
               onClick={() => setShowSow(true)}
-              className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+              className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover"
             >
               Deploy from SOW
             </button>
@@ -217,11 +221,11 @@ export default function AgentCanvas() {
           }}
         >
           {agentsLoading && agents.length === 0 ? (
-            <div className="flex h-full items-center justify-center text-gray-400">
+            <div className="flex h-full items-center justify-center text-gray-500">
               Loading your agents…
             </div>
           ) : agents.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center text-gray-400">
+            <div className="flex h-full flex-col items-center justify-center text-gray-500">
               <p>No agents found.</p>
               <p className="text-sm">The database seeds 7 agents on first run.</p>
             </div>
@@ -260,7 +264,7 @@ export default function AgentCanvas() {
               <span className="absolute left-4 top-3 rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-medium text-indigo-600">
                 Functional
               </span>
-              <span className="absolute right-4 top-3 rounded-full bg-sky-50 px-2.5 py-1 text-[11px] font-medium text-sky-600">
+              <span className="absolute right-4 top-3 rounded-full bg-sky-50 px-2.5 py-1 text-[11px] font-medium text-sky-800">
                 Technical
               </span>
 
@@ -283,14 +287,14 @@ export default function AgentCanvas() {
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-gray-700">
               Unassigned tasks{' '}
-              <span className="ml-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
+              <span className="ml-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
                 {unassigned.length}
               </span>
             </h2>
-            <span className="text-xs text-gray-400">drag a chip onto an agent ↑</span>
+            <span className="text-xs text-gray-500">drag a chip onto an agent ↑</span>
           </div>
           {unassigned.length === 0 ? (
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-gray-500">
               No unassigned tasks. Click an agent to create one, or add tasks from the Projects tab.
             </p>
           ) : (
@@ -302,8 +306,22 @@ export default function AgentCanvas() {
                   onDragStart={(e) => e.dataTransfer.setData('text/plain', t.id)}
                   className="flex cursor-grab items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 shadow-sm active:cursor-grabbing"
                 >
-                  <span className="text-gray-300">⠿</span>
+                  <span aria-hidden="true" className="text-gray-300">⠿</span>
                   <span className="max-w-[220px] truncate">{t.title}</span>
+                  {/* keyboard/touch path — dragging isn't the only way to assign */}
+                  <select
+                    value=""
+                    aria-label={`Assign "${t.title}" to an agent`}
+                    onChange={(e) => e.target.value && assignTask(t.id, e.target.value)}
+                    className="rounded border border-gray-200 bg-white px-1 py-0.5 text-xs text-gray-600 focus:border-indigo-500"
+                  >
+                    <option value="">Assign…</option>
+                    {agents.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               ))}
             </div>

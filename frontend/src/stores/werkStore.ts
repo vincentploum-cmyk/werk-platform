@@ -263,7 +263,8 @@ interface WerkStore {
 }
 
 const API_BASE = '/api/v1'
-const WS_URL = `ws://${window.location.hostname}:8000/ws/events`
+// Same-origin WS so the dev proxy and nginx /ws/ routes both work (and wss under HTTPS).
+const WS_URL = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws/events`
 
 // Module-level token so authFetch can read it without prop drilling.
 let authToken: string | null = null
