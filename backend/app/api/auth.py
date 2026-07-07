@@ -47,35 +47,43 @@ class UserResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# In-memory user store (dev only — replace with DB in production)
+# In-memory user store (dev only — replace with DB in production).
+# Demo users are seeded ONLY in debug mode; with DEBUG=false no default
+# credentials exist and login/registration fail closed until a real user
+# store replaces this.
 # ---------------------------------------------------------------------------
 
-_dev_users: dict[str, dict[str, Any]] = {
-    "admin": {
-        "user_id": "usr-admin-001",
-        "username": "admin",
-        "password": get_password_hash("admin123"),
-        "role": "admin",
-    },
-    "lead": {
-        "user_id": "usr-lead-001",
-        "username": "lead",
-        "password": get_password_hash("lead123"),
-        "role": "lead",
-    },
-    "developer": {
-        "user_id": "usr-dev-001",
-        "username": "developer",
-        "password": get_password_hash("dev123"),
-        "role": "developer",
-    },
-    "viewer": {
-        "user_id": "usr-view-001",
-        "username": "viewer",
-        "password": get_password_hash("view123"),
-        "role": "viewer",
-    },
-}
+_dev_users: dict[str, dict[str, Any]] = {}
+
+if settings.debug:
+    _dev_users.update(
+        {
+            "admin": {
+                "user_id": "usr-admin-001",
+                "username": "admin",
+                "password": get_password_hash("admin123"),
+                "role": "admin",
+            },
+            "lead": {
+                "user_id": "usr-lead-001",
+                "username": "lead",
+                "password": get_password_hash("lead123"),
+                "role": "lead",
+            },
+            "developer": {
+                "user_id": "usr-dev-001",
+                "username": "developer",
+                "password": get_password_hash("dev123"),
+                "role": "developer",
+            },
+            "viewer": {
+                "user_id": "usr-view-001",
+                "username": "viewer",
+                "password": get_password_hash("view123"),
+                "role": "viewer",
+            },
+        }
+    )
 
 
 def _find_user(username: str) -> dict[str, Any] | None:
@@ -118,6 +126,11 @@ async def login(request: LoginRequest):
 @router.post("/register", response_model=UserResponse)
 async def register(request: RegisterRequest):
     """Register a new user (dev only — simple in-memory store)."""
+    if not settings.debug:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Registration is disabled outside debug mode.",
+        )
     if _find_user(request.username):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

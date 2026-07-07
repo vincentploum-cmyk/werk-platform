@@ -11,6 +11,13 @@ runs the delivery lifecycle, and produces downloadable deliverables — driven b
 
 > Research preview. See `docs/` for design notes and `TESTING.md` for the test suite.
 
+## Who this is for
+
+Built for boutique consultancies and delivery teams that want AI-assisted engagements
+**without client documents ever leaving their own infrastructure** — the whole pipeline can
+run on a local model. We're onboarding design partners: email
+[vincentploum@gmail.com](mailto:vincentploum@gmail.com) for a walkthrough.
+
 ## What it does
 
 **1. SOW intake → tailored team.** Upload a signed SOW (`.pptx/.pdf/.docx/.txt`). The platform
@@ -54,7 +61,8 @@ docker-compose exec ollama ollama pull llama3.2   # one-time: the local model
 ```
 
 Then open **http://localhost:5173**. The default login is wired automatically (`admin` — demo
-seed data; the backend refuses to start with a placeholder `SECRET_KEY` outside debug mode).
+seed data that exists **only in debug mode**; with `DEBUG=false` no users are seeded and the
+backend refuses to start with a placeholder `SECRET_KEY`).
 
 Want to try it immediately? Click **Deploy from SOW** on the canvas and upload
 `docs/SAMPLE_SOW.md`. See `WALKTHROUGH.md` for the full happy path.
@@ -77,7 +85,7 @@ infrastructure/   docker-compose (postgres, redis, minio, ollama, backend, front
 docs/             PRD, design, architecture, sample SOW
 ARCHITECTURE.md   System architecture overview
 TESTING.md        Test suite (59 backend tests + Playwright specs)
-ORGANIZATION.md   How the flat cto.new export was organized
+SECURITY.md       Security policy and research-preview posture
 ```
 
 ## Tech stack
