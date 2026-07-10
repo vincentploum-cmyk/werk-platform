@@ -22,6 +22,9 @@ logger = logging.getLogger(__name__)
 # Fail fast if the local model server isn't running; allow long generations.
 _OLLAMA_TIMEOUT = httpx.Timeout(connect=3.0, read=180.0, write=10.0, pool=10.0)
 
+# Reuse one client (and its connection pool) across Ollama calls.
+_ollama_client = httpx.AsyncClient(timeout=_OLLAMA_TIMEOUT)
+
 
 async def chat_complete(system: str, user: str, max_tokens: int = 700) -> tuple[Optional[str], str]:
     """Return (text, provider_name) from the first available provider."""
@@ -56,11 +59,10 @@ async def _ollama(system: str, user: str, max_tokens: int) -> Optional[str]:
         "options": {"num_predict": max_tokens},
     }
     try:
-        async with httpx.AsyncClient(timeout=_OLLAMA_TIMEOUT) as client:
-            resp = await client.post(url, json=payload)
-            resp.raise_for_status()
-            data = resp.json()
-            return (data.get("message") or {}).get("content") or None
+        resp = await _ollama_client.post(url, json=payload)
+        resp.raise_for_status()
+        data = resp.json()
+        return (data.get("message") or {}).get("content") or None
     except Exception as exc:
         logger.warning(f"Ollama call failed ({settings.ollama_base_url}): {exc}")
         return None

@@ -1,5 +1,6 @@
 """Agent API endpoints — register, query, and chat with Werk agents (RBAC enforced)."""
 
+import asyncio
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
@@ -365,7 +366,7 @@ async def analyze_document(
 
     content = await file.read()
     try:
-        text = doc_extract.extract_text(filename, content)
+        text = await asyncio.to_thread(doc_extract.extract_text, filename, content)
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

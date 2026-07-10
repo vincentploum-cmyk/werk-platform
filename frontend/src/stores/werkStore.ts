@@ -524,18 +524,22 @@ export const useWerkStore = create<WerkStore>((set, get) => ({
   },
 
   createTasksBulk: async (projectId, titles, agentId) => {
-    let created = 0
-    for (const title of titles) {
-      if (!title.trim()) continue
-      try {
-        const body: Record<string, unknown> = { project_id: projectId, title: title.trim() }
-        if (agentId) body.assigned_agent_id = agentId
-        const res = await authFetch('/tasks/', { method: 'POST', body: JSON.stringify(body) })
-        if (res.ok) created += 1
-      } catch (err) {
-        console.error('Failed to create task in bulk:', err)
-      }
-    }
+    const results = await Promise.all(
+      titles
+        .filter((title) => title.trim())
+        .map(async (title) => {
+          try {
+            const body: Record<string, unknown> = { project_id: projectId, title: title.trim() }
+            if (agentId) body.assigned_agent_id = agentId
+            const res = await authFetch('/tasks/', { method: 'POST', body: JSON.stringify(body) })
+            return res.ok
+          } catch (err) {
+            console.error('Failed to create task in bulk:', err)
+            return false
+          }
+        }),
+    )
+    const created = results.filter(Boolean).length
     await get().fetchAllTasks()
     return created
   },

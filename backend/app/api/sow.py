@@ -1,5 +1,6 @@
 """SOW intake API — configurable parameters + rules-driven team deployment."""
 
+import asyncio
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
@@ -88,7 +89,7 @@ async def analyze_sow(
         )
     content = await file.read()
     try:
-        text = doc_extract.extract_text(filename, content)
+        text = await asyncio.to_thread(doc_extract.extract_text, filename, content)
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Could not read '{filename}': {exc}"
