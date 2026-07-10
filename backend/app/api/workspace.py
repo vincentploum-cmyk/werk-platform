@@ -1,5 +1,6 @@
 """Per-project workspace API — list files, read a file, and run the tests."""
 
+import asyncio
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -41,7 +42,7 @@ async def run_workspace_tests(
     user: Optional[CurrentUser] = Depends(get_optional_user),
 ):
     """Run the project's tests (sandboxed subprocess). Returns pass/fail + output."""
-    return workspace_service.run_tests(project_id)
+    return await asyncio.to_thread(workspace_service.run_tests, project_id)
 
 
 @router.post("/{project_id}/health-check")
@@ -50,8 +51,6 @@ async def health_check_workspace(
     user: Optional[CurrentUser] = Depends(get_optional_user),
 ):
     """Stand the workspace app up on a free port and probe its health endpoint."""
-    import asyncio
-
     return await asyncio.to_thread(workspace_service.health_check, project_id)
 
 
@@ -61,7 +60,7 @@ async def install_workspace_deps(
     user: Optional[CurrentUser] = Depends(get_optional_user),
 ):
     """Install the workspace's requirements.txt so agents can use real libraries."""
-    return workspace_service.install_dependencies(project_id)
+    return await asyncio.to_thread(workspace_service.install_dependencies, project_id)
 
 
 @router.get("/{project_id}/documents")

@@ -2,6 +2,7 @@
 Auth API routes: login, register, token refresh.
 """
 
+import asyncio
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, status
@@ -103,7 +104,7 @@ def _find_user(username: str) -> dict[str, Any] | None:
 async def login(request: LoginRequest):
     """Authenticate a user and return a JWT access token."""
     user = _find_user(request.username)
-    if not user or not verify_password(request.password, user["password"]):
+    if not user or not await asyncio.to_thread(verify_password, request.password, user["password"]):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password.",
